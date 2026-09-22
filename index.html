@@ -5,76 +5,137 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bina Rehberi</title>
 
-    <!-- ANDROID UYGULAMA DESTEĞİ (PWA) -->
     <link rel="manifest" href="data:application/json,{\"name\":\"Bina Rehberi\",\"short_name\":\"BinaApp\",\"start_url\":\".\",\"display\":\"standalone\",\"background_color\":\"#ffffff\",\"theme_color\":\"#007bff\"}">
     <meta name="mobile-web-app-capable" content="yes">
-
-    <!-- IOS (IPHONE) UYGULAMA DESTEĞİ -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bina Rehberi">
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #f2f4f7; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-        h2 { text-align: center; color: #1c1e21; margin-bottom: 20px; font-size: 22px; font-weight: 700; }
-        input, button { width: 100%; padding: 14px; margin-top: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; outline: none; }
-        input:focus { border-color: #007bff; }
-        button { background-color: #007bff; color: white; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s; }
-        button:active { background-color: #0056b3; }
-        .result-box { margin-top: 20px; padding: 15px; background: #eef5ff; border-left: 4px solid #007bff; border-radius: 8px; display: none; }
-        .error { color: #dc3545; font-size: 14px; margin-top: 10px; text-align: center; display: none; font-weight: 500; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f2f4f7; padding: 15px; display: flex; justify-content: center; }
+        .container { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: #1c1e21; margin-bottom: 15px; font-size: 20px; }
+        
+        input, button, textarea { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; font-size: 15px; outline: none; }
+        input:focus, textarea:focus { border-color: #007bff; }
+        
+        .search-box { position: sticky; top: 0; background: white; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; margin-bottom: 15px; }
+        
+        .add-box { background: #f8f9fa; padding: 12px; border-radius: 10px; border: 1px dashed #007bff; margin-bottom: 15px; }
+        .add-box h3 { font-size: 15px; color: #007bff; margin-bottom: 5px; }
+        .btn-add { background: #007bff; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
+
+        .building-card { background: #ffffff; border: 1px solid #e1e4e8; border-left: 5px solid #007bff; padding: 12px; margin-bottom: 10px; border-radius: 8px; }
+        .b-title { font-weight: bold; font-size: 16px; color: #222; }
+        .b-pass { font-size: 13px; color: #d9534f; font-weight: bold; margin-top: 4px; }
+        .b-info { font-size: 14px; color: #555; margin-top: 5px; line-height: 1.3; }
+        .no-result { text-align: center; color: #888; font-size: 14px; padding: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Bina Arama Sistem</h2>
-    
-    <!-- ARAMA VE ŞİFRE EKRANI -->
-    <input type="text" id="buildingInput" placeholder="Bina İsmi veya No girin...">
-    <input type="password" id="passInput" placeholder="Sistem Şifresi">
-    <button onclick="searchBuilding()">Sorgula</button>
-    
-    <p id="errorMsg" class="error">Bina bulunamadı veya şifre hatalı!</p>
+    <h2>Bina Rehberi</h2>
 
-    <!-- SONUÇ EKRANI -->
-    <div id="result" class="result-box">
-        <h3 id="resTitle" style="color:#007bff; font-size:18px;"></h3>
-        <p id="resInfo" style="margin-top:8px; font-size:15px; color:#333; line-height: 1.4;"></p>
+    <!-- ARAMA MOTORU (CANLI HARF HARF SÜZME) -->
+    <div class="search-box">
+        <input type="text" id="searchInput" oninput="renderList()" placeholder="🔍 Bina adı yazın (Harf harf süzülür)...">
     </div>
+
+    <!-- SİTE İÇİNDEN YENİ BİNA EKLEME FORMU -->
+    <div class="add-box">
+        <h3>+ Yeni Bina Ekle</h3>
+        <input type="password" id="adminPass" placeholder="Siteye Giriş Parolası (Varsayılan: 1234)">
+        <input type="text" id="newTitle" placeholder="Bina / Blok Adı (Örn: C Blok)">
+        <input type="text" id="newPass" placeholder="Bina Şifresi (Örn: 9988)">
+        <textarea id="newInfo" rows="2" placeholder="Not / Açıklama (Örn: Zil çalışmıyor)"></textarea>
+        <button class="btn-add" onclick="addNewBuilding()">Kaydet ve Ekle</button>
+    </div>
+
+    <!-- ALT ALTA SIRALI BİNA LİSTESİ -->
+    <div id="buildingList"></div>
 </div>
 
 <script>
-    // BİNA VERİLERİ VE ŞİFRELERİ (Buraya yeni binalar ekleyebilirsin)
-    const buildings = [
+    // Siteye Giriş / Düzenleme Parolası
+    const ADMIN_PASSWORD = "1234";
+
+    // Başlangıç Binaları
+    const defaultBuildings = [
         { name: "A Blok", pass: "1234", info: "Zil çalışmıyor, kargoyu kapıya bırakın." },
         { name: "Güneş Apartmanı", pass: "5678", info: "Kat 3 Daire 8 - Şifre: 4433" },
         { name: "Lale Sitesi 5. Blok", pass: "9999", info: "Sanal Market teslimatı arka kapıdan yapılacak." }
     ];
 
-    function searchBuilding() {
-        const nameQuery = document.getElementById("buildingInput").value.trim().toLowerCase();
-        const passQuery = document.getElementById("passInput").value.trim();
-        const errorMsg = document.getElementById("errorMsg");
-        const resultBox = document.getElementById("result");
-
-        errorMsg.style.display = "none";
-        resultBox.style.display = "none";
-
-        const found = buildings.find(b => 
-            b.name.toLowerCase() === nameQuery && b.pass === passQuery
-        );
-
-        if (found) {
-            document.getElementById("resTitle").innerText = found.name;
-            document.getElementById("resInfo").innerText = found.info;
-            resultBox.style.display = "block";
-        } else {
-            errorMsg.style.display = "block";
+    // Kayıtlı Verileri Getir (Yerel Hafıza + Varsayılanlar)
+    function getBuildings() {
+        const local = localStorage.getItem("my_building_list");
+        if (local) {
+            return JSON.parse(local);
         }
+        localStorage.setItem("my_building_list", JSON.stringify(defaultBuildings));
+        return defaultBuildings;
     }
+
+    // Listeyi Ekrana Yazdır ve Arama Süzgecini Uygula
+    function renderList() {
+        const query = document.getElementById("searchInput").value.toLowerCase().trim();
+        const listContainer = document.getElementById("buildingList");
+        const buildings = getBuildings();
+
+        listContainer.innerHTML = "";
+
+        const filtered = buildings.filter(b => b.name.toLowerCase().includes(query));
+
+        if (filtered.length === 0) {
+            listContainer.innerHTML = '<div class="no-result">Aramanıza uygun bina bulunamadı.</div>';
+            return;
+        }
+
+        filtered.forEach(b => {
+            const card = document.createElement("div");
+            card.className = "building-card";
+            card.innerHTML = `
+                <div class="b-title">${b.name}</div>
+                <div class="b-pass">🔑 Şifre: ${b.pass}</div>
+                <div class="b-info">${b.info ? b.info : 'Not yok.'}</div>
+            `;
+            listContainer.appendChild(card);
+        });
+    }
+
+    // Yeni Bina Ekleme Fonksiyonu
+    function addNewBuilding() {
+        const adminPass = document.getElementById("adminPass").value;
+        const title = document.getElementById("newTitle").value.trim();
+        const pass = document.getElementById("newPass").value.trim();
+        const info = document.getElementById("newInfo").value.trim();
+
+        if (adminPass !== ADMIN_PASSWORD) {
+            alert("Hatalı Site Parolası! Yeni bina ekleyemezsiniz.");
+            return;
+        }
+
+        if (!title || !pass) {
+            alert("Lütfen en azından Bina Adı ve Şifresini girin.");
+            return;
+        }
+
+        const buildings = getBuildings();
+        buildings.unshift({ name: title, pass: pass, info: info }); // Yeni ekleneni en üste koy
+        localStorage.setItem("my_building_list", JSON.stringify(buildings));
+
+        // Formu temizle ve listeyi yenile
+        document.getElementById("newTitle").value = "";
+        document.getElementById("newPass").value = "";
+        document.getElementById("newInfo").value = "";
+        renderList();
+
+        alert("Yeni bina başarıyla eklendi!");
+    }
+
+    // Sayfa açıldığında listeyi yükle
+    renderList();
 </script>
 
 </body>
