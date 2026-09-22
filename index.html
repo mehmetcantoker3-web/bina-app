@@ -16,8 +16,8 @@
         .container { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         h2 { text-align: center; color: #1c1e21; margin-bottom: 15px; font-size: 20px; }
         
-        input, button, textarea { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; font-size: 15px; outline: none; }
-        input:focus, textarea:focus { border-color: #007bff; }
+        input, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ddd; font-size: 15px; outline: none; }
+        input:focus { border-color: #007bff; }
         
         .search-box { position: sticky; top: 0; background: white; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; margin-bottom: 15px; }
         
@@ -25,11 +25,11 @@
         .add-box h3 { font-size: 15px; color: #007bff; margin-bottom: 5px; }
         .btn-add { background: #007bff; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
 
-        .building-card { background: #ffffff; border: 1px solid #e1e4e8; border-left: 5px solid #007bff; padding: 12px; margin-bottom: 10px; border-radius: 8px; }
+        .building-card { background: #ffffff; border: 1px solid #e1e4e8; border-left: 5px solid #007bff; padding: 12px; margin-bottom: 10px; border-radius: 8px; position: relative; }
         .b-title { font-weight: bold; font-size: 16px; color: #222; }
-        .b-pass { font-size: 13px; color: #d9534f; font-weight: bold; margin-top: 4px; }
-        .b-info { font-size: 14px; color: #555; margin-top: 5px; line-height: 1.3; }
-        .no-result { text-align: center; color: #888; font-size: 14px; padding: 10px; }
+        .b-pass { font-size: 14px; color: #d9534f; font-weight: bold; margin-top: 6px; }
+        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 12px; position: absolute; right: 10px; top: 10px; cursor: pointer; width: auto; margin: 0; }
+        .no-result { text-align: center; color: #888; font-size: 14px; padding: 20px 10px; }
     </style>
 </head>
 <body>
@@ -37,7 +37,7 @@
 <div class="container">
     <h2>Bina Rehberi</h2>
 
-    <!-- ARAMA MOTORU (CANLI HARF HARF SÜZME) -->
+    <!-- ARAMA MOTORU -->
     <div class="search-box">
         <input type="text" id="searchInput" oninput="renderList()" placeholder="🔍 Bina adı yazın (Harf harf süzülür)...">
     </div>
@@ -45,10 +45,8 @@
     <!-- SİTE İÇİNDEN YENİ BİNA EKLEME FORMU -->
     <div class="add-box">
         <h3>+ Yeni Bina Ekle</h3>
-        <input type="password" id="adminPass" placeholder="Siteye Giriş Parolası (Varsayılan: 1234)">
         <input type="text" id="newTitle" placeholder="Bina / Blok Adı (Örn: C Blok)">
         <input type="text" id="newPass" placeholder="Bina Şifresi (Örn: 9988)">
-        <textarea id="newInfo" rows="2" placeholder="Not / Açıklama (Örn: Zil çalışmıyor)"></textarea>
         <button class="btn-add" onclick="addNewBuilding()">Kaydet ve Ekle</button>
     </div>
 
@@ -57,27 +55,13 @@
 </div>
 
 <script>
-    // Siteye Giriş / Düzenleme Parolası
-    const ADMIN_PASSWORD = "1234";
-
-    // Başlangıç Binaları
-    const defaultBuildings = [
-        { name: "A Blok", pass: "1234", info: "Zil çalışmıyor, kargoyu kapıya bırakın." },
-        { name: "Güneş Apartmanı", pass: "5678", info: "Kat 3 Daire 8 - Şifre: 4433" },
-        { name: "Lale Sitesi 5. Blok", pass: "9999", info: "Sanal Market teslimatı arka kapıdan yapılacak." }
-    ];
-
-    // Kayıtlı Verileri Getir (Yerel Hafıza + Varsayılanlar)
+    // Kayıtlı Verileri Getir
     function getBuildings() {
         const local = localStorage.getItem("my_building_list");
-        if (local) {
-            return JSON.parse(local);
-        }
-        localStorage.setItem("my_building_list", JSON.stringify(defaultBuildings));
-        return defaultBuildings;
+        return local ? JSON.parse(local) : [];
     }
 
-    // Listeyi Ekrana Yazdır ve Arama Süzgecini Uygula
+    // Listeyi Ekrana Yazdır
     function renderList() {
         const query = document.getElementById("searchInput").value.toLowerCase().trim();
         const listContainer = document.getElementById("buildingList");
@@ -88,50 +72,51 @@
         const filtered = buildings.filter(b => b.name.toLowerCase().includes(query));
 
         if (filtered.length === 0) {
-            listContainer.innerHTML = '<div class="no-result">Aramanıza uygun bina bulunamadı.</div>';
+            listContainer.innerHTML = '<div class="no-result">Henüz eklenmiş bir bina yok veya aramanıza uygun bina bulunamadı.</div>';
             return;
         }
 
-        filtered.forEach(b => {
+        filtered.forEach((b, index) => {
             const card = document.createElement("div");
             card.className = "building-card";
             card.innerHTML = `
+                <button class="btn-delete" onclick="deleteBuilding(${index})">Sil</button>
                 <div class="b-title">${b.name}</div>
                 <div class="b-pass">🔑 Şifre: ${b.pass}</div>
-                <div class="b-info">${b.info ? b.info : 'Not yok.'}</div>
             `;
             listContainer.appendChild(card);
         });
     }
 
-    // Yeni Bina Ekleme Fonksiyonu
+    // Yeni Bina Ekle
     function addNewBuilding() {
-        const adminPass = document.getElementById("adminPass").value;
         const title = document.getElementById("newTitle").value.trim();
         const pass = document.getElementById("newPass").value.trim();
-        const info = document.getElementById("newInfo").value.trim();
-
-        if (adminPass !== ADMIN_PASSWORD) {
-            alert("Hatalı Site Parolası! Yeni bina ekleyemezsiniz.");
-            return;
-        }
 
         if (!title || !pass) {
-            alert("Lütfen en azından Bina Adı ve Şifresini girin.");
+            alert("Lütfen Bina Adı ve Şifresini doldurun.");
             return;
         }
 
         const buildings = getBuildings();
-        buildings.unshift({ name: title, pass: pass, info: info }); // Yeni ekleneni en üste koy
+        buildings.unshift({ name: title, pass: pass });
         localStorage.setItem("my_building_list", JSON.stringify(buildings));
 
-        // Formu temizle ve listeyi yenile
         document.getElementById("newTitle").value = "";
         document.getElementById("newPass").value = "";
-        document.getElementById("newInfo").value = "";
         renderList();
 
         alert("Yeni bina başarıyla eklendi!");
+    }
+
+    // Bina Sil
+    function deleteBuilding(index) {
+        if (confirm("Bu binayı silmek istediğinize emin misiniz?")) {
+            const buildings = getBuildings();
+            buildings.splice(index, 1);
+            localStorage.setItem("my_building_list", JSON.stringify(buildings));
+            renderList();
+        }
     }
 
     // Sayfa açıldığında listeyi yükle
