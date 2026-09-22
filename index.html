@@ -53,20 +53,32 @@
 </div>
 
 <script>
-    // Ücretsiz Ortak İnternet Veri Tabanı Adresi (Tüm Telefonlar İçin Ortak)
-    const API_URL = "https://65d38fbf32be35010a361bc4.mockapi.io/binalar";
+    // GitHub Bilgileri
+    const USER = "mehmetcantoker3-web"; // GitHub Kullanıcı Adınız
+    const REPO = "bina-uygulaması";       // Depo Adınız
+    const TOKEN = "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"; // 2. Adımda aldığınız ghp_... kodu
+
+    const API_URL = `https://api.github.com/repos/${USER}/${REPO}/contents/binalar.json`;
 
     let globalBuildings = [];
+    let fileSha = "";
 
-    // İnternetten Verileri Çek
+    // GitHub'dan Verileri Çek
     async function fetchBuildings() {
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(API_URL + "?ref=main&t=" + new Date().getTime(), {
+                headers: { "Authorization": `token ${TOKEN}` }
+            });
             if (!response.ok) throw new Error("Veri çekilemedi");
-            globalBuildings = await response.json();
+            const data = await response.json();
+            fileSha = data.sha;
+            
+            // Base64 kodunu çöz ve Türkçe karakterleri düzelt
+            const decodedContent = decodeURIComponent(escape(atob(data.content)));
+            globalBuildings = JSON.parse(decodedContent);
             renderList();
         } catch (error) {
-            document.getElementById("buildingList").innerHTML = '<div class="no-result">Veriler yüklenirken hata oluştu. Bağlantınızı kontrol edin.</div>';
+            document.getElementById("buildingList").innerHTML = '<div class="no-result">Veriler yüklenirken hata oluştu veya binalar.json henüz oluşturulmadı.</div>';
         }
     }
 
@@ -84,11 +96,11 @@
             return;
         }
 
-        filtered.reverse().forEach(b => {
+        filtered.reverse().forEach((b, index) => {
             const card = document.createElement("div");
             card.className = "building-card";
             card.innerHTML = `
-                <button class="btn-delete" onclick="deleteBuilding('${b.id}')">Sil</button>
+                <button class="btn-delete" onclick="deleteBuilding(${globalBuildings.length - 1 - index})">Sil</button>
                 <div class="b-title">${b.name}</div>
                 <div class="b-pass">🔑 Şifre: ${b.pass}</div>
             `;
@@ -96,7 +108,27 @@
         });
     }
 
-    // Yeni Bina Ekle (Ortak Veri Tabanına Kaydeder)
+    // GitHub'a Veri Kaydet
+    async function saveToGitHub(newList) {
+        const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(newList, null, 2))));
+        
+        const response = await fetch(API_URL, {
+            method: "PUT",
+            headers: {
+                "Authorization": `token ${TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "Bina listesi güncellendi",
+                content: contentEncoded,
+                sha: fileSha
+            })
+        });
+
+        return response.ok;
+    }
+
+    // Yeni Bina Ekle
     async function addNewBuilding() {
         const title = document.getElementById("newTitle").value.trim();
         const pass = document.getElementById("newPass").value.trim();
@@ -111,19 +143,16 @@
         saveBtn.disabled = true;
 
         try {
-            const response = await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: title, pass: pass })
-            });
+            const newList = [...globalBuildings, { name: title, pass: pass }];
+            const success = await saveToGitHub(newList);
 
-            if (response.ok) {
+            if (success) {
                 document.getElementById("newTitle").value = "";
                 document.getElementById("newPass").value = "";
                 await fetchBuildings();
-                alert("Yeni bina başarıyla eklendi! Artık tüm telefonlarda görünecek.");
+                alert("Yeni bina başarıyla eklendi! Tüm cihazlarda güncellendi.");
             } else {
-                alert("Eklenirken bir hata oluştu.");
+                alert("Kaydedilirken hata oluştu. Token kodunu kontrol edin.");
             }
         } catch (error) {
             alert("Bağlantı hatası!");
@@ -133,23 +162,22 @@
         }
     }
 
-    // Bina Sil (Ortak Veri Tabanından Siler)
-    async function deleteBuilding(id) {
+    // Bina Sil
+    async function deleteBuilding(originalIndex) {
         if (confirm("Bu binayı silmek istediğinize emin misiniz?")) {
-            try {
-                const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-                if (response.ok) {
-                    await fetchBuildings();
-                } else {
-                    alert("Silinirken hata oluştu.");
-                }
-            } catch (error) {
-                alert("Bağlantı hatası!");
+            const newList = [...globalBuildings];
+            newList.splice(originalIndex, 1);
+            
+            const success = await saveToGitHub(newList);
+            if (success) {
+                await fetchBuildings();
+            } else {
+                alert("Silinirken hata oluştu.");
             }
         }
     }
 
-    // Sayfa açıldığında verileri canlı çek
+    // Sayfa açıldığında verileri yükle
     fetchBuildings();
 </script>
 
