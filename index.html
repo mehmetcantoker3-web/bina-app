@@ -53,10 +53,10 @@
 </div>
 
 <script>
-    // GitHub Bilgileri
-    const USER = "mehmetcantoker3-web"; // GitHub Kullanıcı Adınız
-    const REPO = "bina-uygulaması";       // Depo Adınız
-    const TOKEN = "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"; // 2. Adımda aldığınız ghp_... kodu
+    // GitHub Bilgileriniz
+    const USER = "mehmetcantoker3-web"; 
+    const REPO = "bina-app";       
+    const TOKEN = "Ghp_Sy9KSPZAhcBoCu61lJPwcP1cA6V2QM1gakUq"; 
 
     const API_URL = `https://api.github.com/repos/${USER}/${REPO}/contents/binalar.json`;
 
@@ -73,12 +73,11 @@
             const data = await response.json();
             fileSha = data.sha;
             
-            // Base64 kodunu çöz ve Türkçe karakterleri düzelt
             const decodedContent = decodeURIComponent(escape(atob(data.content)));
             globalBuildings = JSON.parse(decodedContent);
             renderList();
         } catch (error) {
-            document.getElementById("buildingList").innerHTML = '<div class="no-result">Veriler yüklenirken hata oluştu veya binalar.json henüz oluşturulmadı.</div>';
+            document.getElementById("buildingList").innerHTML = '<div class="no-result">Veriler yüklenirken hata oluştu veya binalar.json dosyası henüz oluşturulmadı.</div>';
         }
     }
 
