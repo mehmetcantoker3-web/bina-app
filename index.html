@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bina Rehberi</title>
+
+    <!-- ANDROID UYGULAMA DESTEĞİ (PWA) -->
+    <link rel="manifest" href="data:application/json,{\"name\":\"Bina Rehberi\",\"short_name\":\"BinaApp\",\"start_url\":\".\",\"display\":\"standalone\",\"background_color\":\"#ffffff\",\"theme_color\":\"#007bff\"}">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- IOS (IPHONE) UYGULAMA DESTEĞİ -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bina Rehberi">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #f2f4f7; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: #1c1e21; margin-bottom: 20px; font-size: 22px; font-weight: 700; }
+        input, button { width: 100%; padding: 14px; margin-top: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; outline: none; }
+        input:focus { border-color: #007bff; }
+        button { background-color: #007bff; color: white; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s; }
+        button:active { background-color: #0056b3; }
+        .result-box { margin-top: 20px; padding: 15px; background: #eef5ff; border-left: 4px solid #007bff; border-radius: 8px; display: none; }
+        .error { color: #dc3545; font-size: 14px; margin-top: 10px; text-align: center; display: none; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Bina Arama Sistem</h2>
+    
+    <!-- ARAMA VE ŞİFRE EKRANI -->
+    <input type="text" id="buildingInput" placeholder="Bina İsmi veya No girin...">
+    <input type="password" id="passInput" placeholder="Sistem Şifresi">
+    <button onclick="searchBuilding()">Sorgula</button>
+    
+    <p id="errorMsg" class="error">Bina bulunamadı veya şifre hatalı!</p>
+
+    <!-- SONUÇ EKRANI -->
+    <div id="result" class="result-box">
+        <h3 id="resTitle" style="color:#007bff; font-size:18px;"></h3>
+        <p id="resInfo" style="margin-top:8px; font-size:15px; color:#333; line-height: 1.4;"></p>
+    </div>
+</div>
+
+<script>
+    // BİNA VERİLERİ VE ŞİFRELERİ (Buraya yeni binalar ekleyebilirsin)
+    const buildings = [
+        { name: "A Blok", pass: "1234", info: "Zil çalışmıyor, kargoyu kapıya bırakın." },
+        { name: "Güneş Apartmanı", pass: "5678", info: "Kat 3 Daire 8 - Şifre: 4433" },
+        { name: "Lale Sitesi 5. Blok", pass: "9999", info: "Sanal Market teslimatı arka kapıdan yapılacak." }
+    ];
+
+    function searchBuilding() {
+        const nameQuery = document.getElementById("buildingInput").value.trim().toLowerCase();
+        const passQuery = document.getElementById("passInput").value.trim();
+        const errorMsg = document.getElementById("errorMsg");
+        const resultBox = document.getElementById("result");
+
+        errorMsg.style.display = "none";
+        resultBox.style.display = "none";
+
+        const found = buildings.find(b => 
+            b.name.toLowerCase() === nameQuery && b.pass === passQuery
+        );
+
+        if (found) {
+            document.getElementById("resTitle").innerText = found.name;
+            document.getElementById("resInfo").innerText = found.info;
+            resultBox.style.display = "block";
+        } else {
+            errorMsg.style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>
