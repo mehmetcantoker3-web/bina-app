@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bina Rehberi</title>
 
-    <link rel="manifest" href="data:application/json,{\"name\":\"Bina Rehberi\",\"short_name\":\"BinaApp\",\"start_url\":\".\",\"display\":\"standalone\",\"background_color\":\"#ffffff\",\"theme_color\":\"#007bff\"}">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f2f4f7; padding: 15px; display: flex; justify-content: center; }
@@ -30,6 +25,7 @@
         .b-pass { font-size: 14px; color: #d9534f; font-weight: bold; margin-top: 6px; }
         .btn-delete { background: #ff4d4d; color: white; border: none; padding: 5px 8px; border-radius: 5px; font-size: 12px; position: absolute; right: 10px; top: 10px; cursor: pointer; width: auto; margin: 0; }
         .no-result { text-align: center; color: #888; font-size: 14px; padding: 20px 10px; }
+        .loading { text-align: center; color: #007bff; font-weight: bold; font-size: 14px; padding: 15px; }
     </style>
 </head>
 <body>
@@ -42,45 +38,57 @@
         <input type="text" id="searchInput" oninput="renderList()" placeholder="🔍 Bina adı yazın (Harf harf süzülür)...">
     </div>
 
-    <!-- SİTE İÇİNDEN YENİ BİNA EKLEME FORMU -->
+    <!-- YENİ BİNA EKLEME FORMU -->
     <div class="add-box">
         <h3>+ Yeni Bina Ekle</h3>
         <input type="text" id="newTitle" placeholder="Bina / Blok Adı (Örn: C Blok)">
         <input type="text" id="newPass" placeholder="Bina Şifresi (Örn: 9988)">
-        <button class="btn-add" onclick="addNewBuilding()">Kaydet ve Ekle</button>
+        <button class="btn-add" id="saveBtn" onclick="addNewBuilding()">Kaydet ve Ekle</button>
     </div>
 
     <!-- ALT ALTA SIRALI BİNA LİSTESİ -->
-    <div id="buildingList"></div>
+    <div id="buildingList">
+        <div class="loading">Veriler yükleniyor...</div>
+    </div>
 </div>
 
 <script>
-    // Kayıtlı Verileri Getir
-    function getBuildings() {
-        const local = localStorage.getItem("my_building_list");
-        return local ? JSON.parse(local) : [];
+    // Ücretsiz Ortak İnternet Veri Tabanı Adresi (Tüm Telefonlar İçin Ortak)
+    const API_URL = "https://65d38fbf32be35010a361bc4.mockapi.io/binalar";
+
+    let globalBuildings = [];
+
+    // İnternetten Verileri Çek
+    async function fetchBuildings() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error("Veri çekilemedi");
+            globalBuildings = await response.json();
+            renderList();
+        } catch (error) {
+            document.getElementById("buildingList").innerHTML = '<div class="no-result">Veriler yüklenirken hata oluştu. Bağlantınızı kontrol edin.</div>';
+        }
     }
 
     // Listeyi Ekrana Yazdır
     function renderList() {
         const query = document.getElementById("searchInput").value.toLowerCase().trim();
         const listContainer = document.getElementById("buildingList");
-        const buildings = getBuildings();
 
         listContainer.innerHTML = "";
 
-        const filtered = buildings.filter(b => b.name.toLowerCase().includes(query));
+        const filtered = globalBuildings.filter(b => b.name && b.name.toLowerCase().includes(query));
 
         if (filtered.length === 0) {
             listContainer.innerHTML = '<div class="no-result">Henüz eklenmiş bir bina yok veya aramanıza uygun bina bulunamadı.</div>';
             return;
         }
 
-        filtered.forEach((b, index) => {
+        filtered.reverse().forEach(b => {
             const card = document.createElement("div");
             card.className = "building-card";
             card.innerHTML = `
-                <button class="btn-delete" onclick="deleteBuilding(${index})">Sil</button>
+                <button class="btn-delete" onclick="deleteBuilding('${b.id}')">Sil</button>
                 <div class="b-title">${b.name}</div>
                 <div class="b-pass">🔑 Şifre: ${b.pass}</div>
             `;
@@ -88,39 +96,61 @@
         });
     }
 
-    // Yeni Bina Ekle
-    function addNewBuilding() {
+    // Yeni Bina Ekle (Ortak Veri Tabanına Kaydeder)
+    async function addNewBuilding() {
         const title = document.getElementById("newTitle").value.trim();
         const pass = document.getElementById("newPass").value.trim();
+        const saveBtn = document.getElementById("saveBtn");
 
         if (!title || !pass) {
             alert("Lütfen Bina Adı ve Şifresini doldurun.");
             return;
         }
 
-        const buildings = getBuildings();
-        buildings.unshift({ name: title, pass: pass });
-        localStorage.setItem("my_building_list", JSON.stringify(buildings));
+        saveBtn.innerText = "Kaydediliyor...";
+        saveBtn.disabled = true;
 
-        document.getElementById("newTitle").value = "";
-        document.getElementById("newPass").value = "";
-        renderList();
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: title, pass: pass })
+            });
 
-        alert("Yeni bina başarıyla eklendi!");
-    }
-
-    // Bina Sil
-    function deleteBuilding(index) {
-        if (confirm("Bu binayı silmek istediğinize emin misiniz?")) {
-            const buildings = getBuildings();
-            buildings.splice(index, 1);
-            localStorage.setItem("my_building_list", JSON.stringify(buildings));
-            renderList();
+            if (response.ok) {
+                document.getElementById("newTitle").value = "";
+                document.getElementById("newPass").value = "";
+                await fetchBuildings();
+                alert("Yeni bina başarıyla eklendi! Artık tüm telefonlarda görünecek.");
+            } else {
+                alert("Eklenirken bir hata oluştu.");
+            }
+        } catch (error) {
+            alert("Bağlantı hatası!");
+        } finally {
+            saveBtn.innerText = "Kaydet ve Ekle";
+            saveBtn.disabled = false;
         }
     }
 
-    // Sayfa açıldığında listeyi yükle
-    renderList();
+    // Bina Sil (Ortak Veri Tabanından Siler)
+    async function deleteBuilding(id) {
+        if (confirm("Bu binayı silmek istediğinize emin misiniz?")) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+                if (response.ok) {
+                    await fetchBuildings();
+                } else {
+                    alert("Silinirken hata oluştu.");
+                }
+            } catch (error) {
+                alert("Bağlantı hatası!");
+            }
+        }
+    }
+
+    // Sayfa açıldığında verileri canlı çek
+    fetchBuildings();
 </script>
 
 </body>
